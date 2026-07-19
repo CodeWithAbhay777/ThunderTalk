@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { encryptDiaryContent } from "@/crypto/diary-crypto";
 import { diaryApi } from "@/services/diary-api";
+import type { EncryptedDiaryPayload } from "@/types/diary";
 
 type Props = { date: string; initialContent: string; exists: boolean; cryptoKey: CryptoKey; kdfSalt: string | null; onSaved: () => void; onDirtyChange: (dirty: boolean) => void };
 export function DiaryEditor({ date, initialContent, exists, cryptoKey, kdfSalt, onSaved, onDirtyChange }: Props) {
@@ -13,7 +14,15 @@ export function DiaryEditor({ date, initialContent, exists, cryptoKey, kdfSalt, 
   const stats = useMemo(() => { const words = content.trim() ? content.trim().split(/\s+/u).length : 0; return { chars: [...content].length, words, minutes: Math.max(1, Math.ceil(words / 200)) }; }, [content]);
   async function save() {
     if (!dirty || saving.current) return; saving.current = true; setStatus("Encrypting…"); setError(null);
-    try { const encrypted = await encryptDiaryContent(cryptoKey, content); const payload = kdfSalt ? { ...encrypted, kdfSalt } : encrypted; if (exists) await diaryApi.update(date, payload); else await diaryApi.create({ date, ...payload }); setSavedContent(content); setStatus("Saved"); onSaved(); }
+    try {
+      if (!kdfSalt) throw new Error("Missing key derivation salt for this entry.");
+      const encrypted = await encryptDiaryContent(cryptoKey, content);
+      const payload: Omit<EncryptedDiaryPayload, "date"> = { ...encrypted, kdfSalt };
+      if (exists) await diaryApi.update(date, payload); else await diaryApi.create({ date, ...payload });
+      setSavedContent(content);
+      setStatus("Saved");
+      onSaved();
+    }
     catch (reason) { setError(reason instanceof Error ? reason.message : "Could not save entry."); setStatus("Not saved"); }
     finally { saving.current = false; }
   }
