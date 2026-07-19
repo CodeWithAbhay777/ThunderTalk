@@ -4,7 +4,7 @@ import { connectDatabase } from "@/database/mongoose";
 import { Diary } from "@/models/diary";
 import { errorResponse, requireSession } from "@/server/api";
 
-const entrySchema = z.object({ date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/), encryptedContent: z.string().min(1).max(2_000_000), iv: z.string().min(16).max(64) });
+const entrySchema = z.object({ date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/), encryptedContent: z.string().min(1).max(2_000_000), iv: z.string().min(16).max(64), kdfSalt: z.string().min(16).max(64) });
 
 export async function GET(request: NextRequest): Promise<NextResponse> {
   const denied = await requireSession(request); if (denied) return denied;
@@ -22,7 +22,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     if (!parsed.success) return NextResponse.json({ error: "Invalid encrypted entry." }, { status: 400 });
     await connectDatabase();
     const entry = await Diary.create(parsed.data);
-    return NextResponse.json({ date: entry.date, encryptedContent: entry.encryptedContent, iv: entry.iv, createdAt: entry.createdAt, updatedAt: entry.updatedAt }, { status: 201 });
+    return NextResponse.json({ date: entry.date, encryptedContent: entry.encryptedContent, iv: entry.iv, kdfSalt: entry.kdfSalt, createdAt: entry.createdAt, updatedAt: entry.updatedAt }, { status: 201 });
   } catch (error) {
     if (typeof error === "object" && error && "code" in error && error.code === 11000) return NextResponse.json({ error: "An entry already exists for this date.", code: "DUPLICATE_DATE" }, { status: 409 });
     return errorResponse(error);

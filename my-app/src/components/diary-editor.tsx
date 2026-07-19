@@ -4,8 +4,8 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { encryptDiaryContent } from "@/crypto/diary-crypto";
 import { diaryApi } from "@/services/diary-api";
 
-type Props = { date: string; initialContent: string; exists: boolean; cryptoKey: CryptoKey; onSaved: () => void; onDirtyChange: (dirty: boolean) => void };
-export function DiaryEditor({ date, initialContent, exists, cryptoKey, onSaved, onDirtyChange }: Props) {
+type Props = { date: string; initialContent: string; exists: boolean; cryptoKey: CryptoKey; kdfSalt: string | null; onSaved: () => void; onDirtyChange: (dirty: boolean) => void };
+export function DiaryEditor({ date, initialContent, exists, cryptoKey, kdfSalt, onSaved, onDirtyChange }: Props) {
   const [content, setContent] = useState(initialContent); const [savedContent, setSavedContent] = useState(initialContent); const [status, setStatus] = useState("Saved"); const [error, setError] = useState<string | null>(null); const saving = useRef(false);
   const dirty = content !== savedContent;
   useEffect(() => { onDirtyChange(dirty); }, [dirty, onDirtyChange]);
@@ -13,7 +13,7 @@ export function DiaryEditor({ date, initialContent, exists, cryptoKey, onSaved, 
   const stats = useMemo(() => { const words = content.trim() ? content.trim().split(/\s+/u).length : 0; return { chars: [...content].length, words, minutes: Math.max(1, Math.ceil(words / 200)) }; }, [content]);
   async function save() {
     if (!dirty || saving.current) return; saving.current = true; setStatus("Encrypting…"); setError(null);
-    try { const encrypted = await encryptDiaryContent(cryptoKey, content); if (exists) await diaryApi.update(date, encrypted); else await diaryApi.create({ date, ...encrypted }); setSavedContent(content); setStatus("Saved"); onSaved(); }
+    try { const encrypted = await encryptDiaryContent(cryptoKey, content); const payload = kdfSalt ? { ...encrypted, kdfSalt } : encrypted; if (exists) await diaryApi.update(date, payload); else await diaryApi.create({ date, ...payload }); setSavedContent(content); setStatus("Saved"); onSaved(); }
     catch (reason) { setError(reason instanceof Error ? reason.message : "Could not save entry."); setStatus("Not saved"); }
     finally { saving.current = false; }
   }

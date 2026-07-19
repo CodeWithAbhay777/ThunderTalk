@@ -2,6 +2,7 @@ export type EncryptedDiaryPayload = {
   date: string;
   encryptedContent: string;
   iv: string;
+  kdfSalt: string;
 };
 
 export type DiaryEntry = EncryptedDiaryPayload & {
