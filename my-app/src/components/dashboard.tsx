@@ -61,6 +61,8 @@ export function Dashboard() {
     setDirty(false); setEntry(null); clearEntryKey(); setNotice(null); setLoading(true); setDialogOpen(true); setDate(nextDate);
   }
 
+  const handleSaved = useCallback((savedEntry: DiaryEntry) => { setEntry(savedEntry); setEntrySalt(savedEntry.kdfSalt); void refreshIndex(); }, [refreshIndex]);
+
   async function unlockEntry(password: string) {
     if (!password) throw new Error("A password is required to unlock this entry.");
     if (!entry) {
@@ -73,19 +75,12 @@ export function Dashboard() {
       return;
     }
 
-    if (entry.kdfSalt) {
-      const scopedKey = await deriveDiaryKey(password, entry.kdfSalt);
-      setEntrySalt(entry.kdfSalt);
-      setKey(scopedKey);
-      setContent(await decryptDiaryContent(scopedKey, entry.encryptedContent, entry.iv));
-      setDialogOpen(false);
-      return;
-    }
+    if (!entry.kdfSalt) throw new Error("This diary entry is missing its key derivation salt.");
 
-    setEntrySalt(null);
     const scopedKey = await deriveDiaryKey(password, entry.kdfSalt);
-    setContent(await decryptDiaryContent(scopedKey, entry.encryptedContent, entry.iv));
+    setEntrySalt(entry.kdfSalt);
     setKey(scopedKey);
+    setContent(await decryptDiaryContent(scopedKey, entry.encryptedContent, entry.iv));
     setDialogOpen(false);
   }
 
@@ -95,6 +90,6 @@ export function Dashboard() {
     <div className="workspace"><aside className="sidebar"><div className="sidebar-row"><h2>Entries</h2><button className="icon-button" aria-label="New entry" onClick={() => selectDate(localDate())}>+</button></div><label className="sr-only" htmlFor="date-search">Find date</label><input id="date-search" type="date" value={date} onChange={(event) => selectDate(event.target.value)} />
       <nav aria-label="Previous diary entries">{entries.map((item) => <button key={item.date} className={item.date === date ? "entry-link active" : "entry-link"} onClick={() => selectDate(item.date)}><span>{item.date}</span><small>Updated {new Date(item.updatedAt).toLocaleDateString()}</small></button>)}</nav></aside>
       <section className="content"><div className="content-title"><div><p className="eyebrow">Daily entry</p><h1>{new Date(`${date}T12:00:00`).toLocaleDateString(undefined, { weekday: "long", month: "long", day: "numeric", year: "numeric" })}</h1></div><button className="danger" onClick={async () => { if (entry && confirm("Permanently delete this encrypted entry?")) { await diaryApi.remove(date); clearEntryKey(); setEntry(null); await refreshIndex(); } }} disabled={!entry}>Delete</button></div>
-        {notice && <p className="error" role="alert">{notice}</p>}{loading ? <p className="muted">Loading encrypted entry…</p> : encryptedPreview}{!loading && !entry && !key && <section className="encrypted-preview"><p className="eyebrow">No ciphertext yet</p><p className="muted">Unlock this date to create its encrypted entry.</p><button className="button" onClick={() => setDialogOpen(true)}>Unlock new entry</button></section>}{key && content !== null && <DiaryEditor key={date} date={date} initialContent={content} exists={Boolean(entry)} cryptoKey={key} kdfSalt={entrySalt} onSaved={() => void refreshIndex()} onDirtyChange={onDirtyChange} />}
+        {notice && <p className="error" role="alert">{notice}</p>}{loading ? <p className="muted">Loading encrypted entry…</p> : encryptedPreview}{!loading && !entry && !key && <section className="encrypted-preview"><p className="eyebrow">No ciphertext yet</p><p className="muted">Unlock this date to create its encrypted entry.</p><button className="button" onClick={() => setDialogOpen(true)}>Unlock new entry</button></section>}{key && content !== null && <DiaryEditor key={date} date={date} initialContent={content} exists={Boolean(entry)} cryptoKey={key} kdfSalt={entrySalt} onSaved={handleSaved} onDirtyChange={onDirtyChange} />}
       </section></div>{dialogOpen && !loading && <EntryUnlockDialog date={date} onUnlock={unlockEntry} onCancel={() => setDialogOpen(false)} />}</main>;
 }

@@ -3,14 +3,6 @@ type ServerEnvironment = "AUTH_PASSWORD_BCRYPT_HASH" | "JWT_SECRET";
 export function requiredEnvironment(name: ServerEnvironment): string {
   const value = process.env[name];
 
-  console.log({
-    name,
-    exists: !!value,
-    length: value?.length,
-    startsWith: value?.slice(0, 7),
-    endsWith: value?.slice(-5),
-  });
-
   if (!value) throw new Error(`Missing ${name} environment variable.`);
 
   if (
