@@ -20,7 +20,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
   try {
     await connectDatabase();
     const entries = await Diary.find({ date: { $gte: from, $lte: to } }).sort({ date: -1 }).lean();
-    return NextResponse.json({ status: 200, success: true, from, to, entries }, { status: 200 });
+    return NextResponse.json({ status: 200, success: true, from, to, countDocument: entries.length, entries }, { status: 200 });
   } catch (error) {
     return agentErrorResponse(error);
   }

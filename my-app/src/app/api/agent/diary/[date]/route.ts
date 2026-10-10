@@ -23,7 +23,7 @@ export async function GET(request: NextRequest, context: Context): Promise<NextR
     if (!entry) {
       return NextResponse.json({ status: 404, success: false, error: "Diary entry not found." }, { status: 404 });
     }
-    return NextResponse.json({ status: 200, success: true, entry }, { status: 200 });
+    return NextResponse.json({ status: 200, success: true, countDocument: 1, entry }, { status: 200 });
   } catch (error) {
     return agentErrorResponse(error);
   }
