@@ -21,5 +21,6 @@ The CLI can authenticate with `POST /api/agent/login` using `{ "password": "..."
 - `GET /api/agent/diary/range?from=YYYY-MM-DD&to=YYYY-MM-DD` returns encrypted entries within an inclusive date range.
 - `GET /api/agent/diary/sync?lastSyncedAt=ISO_DATE` returns entries created or updated after the supplied timestamp. Omitting the timestamp returns all entries.
 - `GET /api/agent/diary/count` returns the total number of diary entries.
+- `GET /api/agent/diary/month?year=YYYY&month=1-12` returns the entry count and date-only array for that month.
 
 The list endpoint supports `limit` and `offset` query parameters. `limit` defaults to 5 and cannot exceed 5. Agent entry responses include `status`, `success`, and `countDocument`. The agent API never decrypts diary content; decryption should happen in the trusted CLI.
